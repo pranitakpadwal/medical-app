@@ -1,3 +1,4 @@
+import { getDb } from "@/lib/db";
 import { retrieve } from "@/lib/retrieval";
 import type { Answer, Source } from "@/lib/types";
 
@@ -20,6 +21,29 @@ function dedupeSources(sources: Source[]): Source[] {
 }
 
 /**
+ * Log the question for the content roadmap ("what are students asking that we
+ * can't answer?"). Failure to log must never break answering.
+ */
+async function logQuestion(
+  question: string,
+  status: Answer["status"],
+  topScore: number,
+): Promise<number | undefined> {
+  try {
+    const sql = await getDb();
+    if (!sql) return undefined;
+    const [row] = await sql<[{ id: number }]>`
+      INSERT INTO questions (question, status, top_score)
+      VALUES (${question}, ${status}, ${topScore})
+      RETURNING id`;
+    return Number(row.id);
+  } catch (err) {
+    console.error("MedCheck: failed to log question.", err);
+    return undefined;
+  }
+}
+
+/**
  * The core grounded-answer engine.
  *
  * It never generates free-form medical content: it retrieves passages from the
@@ -28,7 +52,7 @@ function dedupeSources(sources: Source[]): Source[] {
  * on top to phrase these passages into prose — but only ever over this same
  * retrieved, cited text, never from the model's own memory.
  */
-export function answerQuestion(question: string): Answer {
+export async function answerQuestion(question: string): Promise<Answer> {
   const trimmed = question.trim();
 
   if (trimmed.length === 0) {
@@ -42,12 +66,14 @@ export function answerQuestion(question: string): Answer {
     };
   }
 
-  const { passages, topScore } = retrieve(trimmed);
+  const { passages, topScore } = await retrieve(trimmed);
 
   if (passages.length === 0 || topScore < ABSTAIN_THRESHOLD) {
+    const questionId = await logQuestion(trimmed, "abstained", topScore);
     return {
       status: "abstained",
       question: trimmed,
+      questionId,
       headline:
         "No verified source in the current library covers this yet. Ask your PG or faculty, and we'll prioritise adding a vetted source for it.",
       passages: [],
@@ -56,9 +82,11 @@ export function answerQuestion(question: string): Answer {
     };
   }
 
+  const questionId = await logQuestion(trimmed, "answered", topScore);
   return {
     status: "answered",
     question: trimmed,
+    questionId,
     headline: `Found ${passages.length} grounded passage${passages.length > 1 ? "s" : ""} from vetted sources.`,
     passages,
     sources: dedupeSources(passages.map((p) => p.source)),

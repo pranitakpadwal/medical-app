@@ -46,6 +46,8 @@ export type AnswerStatus = "answered" | "abstained";
 export interface Answer {
   status: AnswerStatus;
   question: string;
+  /** Log id for this question when a database is configured; enables feedback. */
+  questionId?: number;
   /** One-line framing of what was found (or why we abstained). */
   headline: string;
   /** Grounded passages, strongest match first. Empty when abstained. */

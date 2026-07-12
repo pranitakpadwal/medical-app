@@ -32,50 +32,89 @@ clinicians: every answer carries its citations.
 
 ## How it works
 
-- `src/data/sources.ts` — the vetted library: `Source` records (issuing body,
-  year, URL, evidence level) and `Chunk` records (the retrievable, quotable
-  text). **This is currently a small hand-curated demonstration seed set** of
-  well-established teaching facts, so the end-to-end flow works with no API keys
-  or database. In production this table is replaced by chunked, embedded text
-  from real ingested sources.
-- `src/lib/retrieval.ts` — dependency-free lexical retrieval over the seed
-  library. This is the single seam to swap for embedding-based semantic search
-  (e.g. Postgres + pgvector); everything downstream only consumes
-  `RetrievedPassage[]`.
-- `src/lib/answer.ts` — the grounding engine: retrieve → decide answer vs.
-  abstain → return cited passages with the safety disclaimer.
+- `src/lib/db.ts` — Postgres access with graceful absence: when `DATABASE_URL`
+  is unset the whole app falls back to the in-memory seed library; when set,
+  the schema is created on first use and seeded with the same content.
+- `src/lib/retrieval.ts` — two retrieval paths, one behavior. With a database:
+  Postgres full-text search (English stemming) does recall, then a lexical
+  scorer ranks candidates and drives abstention. Without: pure lexical
+  retrieval over the seed library. The next upgrade seam is swapping FTS recall
+  for embedding-based semantic search (pgvector) inside `dbRetrieve` only.
+- `src/lib/answer.ts` — the grounding engine: retrieve → answer vs. abstain →
+  cited passages + safety disclaimer. Logs every question (answered or
+  abstained) so the most-asked uncovered topics become the content roadmap.
+- `src/data/sources.ts` — the hand-curated seed library (`Source` + `Chunk`
+  records) used as fallback and to seed fresh databases.
 - `src/app/api/ask/route.ts` — POST `{ question }` → grounded `Answer` JSON.
-- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode**, a chat UI
-  that renders each answer with citations and evidence badges.
+- `src/app/api/feedback/route.ts` — POST thumbs up/down on an answer.
+- `src/app/admin/page.tsx` + `src/app/api/admin/*` — password-protected
+  content curation: paste a source (metadata + text) → it is chunked
+  (`src/lib/chunking.ts`) and becomes retrievable immediately; dashboard shows
+  library stats and recent/unanswered questions.
+- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode** chat UI with
+  citations, evidence badges and feedback buttons.
 - `src/app/learn/page.tsx` + `src/data/cases.ts` — **Learn mode**, short
   clinical case studies with a guided reveal for "tired mode" revision.
 - `src/app/manifest.ts` — PWA manifest so the app installs to a home screen.
 
+## Deployment (Railway)
+
+The app runs with zero configuration (seed library only). To enable the full
+Phase 2 features:
+
+1. **Add Postgres:** in your Railway project, **Create → Database →
+   PostgreSQL**.
+2. **Connect it:** on the app service, add a variable
+   `DATABASE_URL = ${{Postgres.DATABASE_URL}}` (reference the database
+   service). Railway's private-network URL works; TLS is auto-negotiated
+   (`ssl: "prefer"`).
+3. **Enable admin:** add a variable `ADMIN_PASSWORD = <a strong password>`.
+4. Redeploy. Tables are created and seeded automatically on first request.
+5. Open `/admin`, unlock with the password, and start ingesting sources.
+
+| Env var | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | No | Enables the growing library, question logging, feedback, admin. Without it the app serves the built-in seed library. |
+| `ADMIN_PASSWORD` | No | Enables `/admin` and the ingestion API. Without it admin endpoints return 501. |
+
+## Content workflow (the real product loop)
+
+1. Students ask questions; every question is logged.
+2. `/admin` shows **abstained questions** — the exact list of what students
+   need that the library doesn't cover.
+3. A curator pastes the relevant vetted source (public guidelines: WHO, ICMR,
+   MoHFW/NVBDCP STGs; or lab manuals with permission) with its citation
+   metadata. It becomes retrievable immediately — no deploy needed.
+4. Re-asking the question now returns a grounded, cited answer.
+
+**Content rights:** only ingest text you may use — public national/international
+guidelines and materials with the owner's permission. Not scanned copyrighted
+textbooks.
+
 ## Roadmap
 
-- **Phase 1 (this repo):** PWA, Ask mode with grounded/cited answers and honest
+- **Phase 1 (done):** PWA, Ask mode with grounded/cited answers and honest
   abstention, Learn mode case studies, seed content.
-- **Phase 2 — real content + trust layer:** ingestion pipeline (chunk + embed
-  national guidelines, standard textbooks, PubMed, uploaded lab manuals);
-  semantic retrieval via pgvector; verified PG/faculty accounts who can endorse
-  or correct answers ("verified by a PG" badge); per-answer flagging; analytics
-  on most-asked questions to drive the content roadmap.
-- **Phase 3 — scale:** LLM synthesis layer that phrases retrieved passages into
-  prose (only ever over the cited text, never model memory); WhatsApp bot as a
-  second front-end; institution partnerships.
+- **Phase 2 (this iteration):** Postgres-backed growing library, FTS retrieval
+  with stemming, question logging + unanswered dashboard, answer feedback,
+  password-protected ingestion. **Next:** embedding-based semantic retrieval
+  (pgvector) and an LLM synthesis layer that phrases retrieved passages into
+  prose — only ever over the cited text, never model memory (needs API keys).
+- **Phase 3:** verified PG/faculty accounts that endorse or correct answers
+  ("verified by a PG" badge), per-answer flagging, WhatsApp bot front-end,
+  institution partnerships.
 
 ## Important caveats
 
-1. **The source library here is a demonstration seed**, not a full clinical
-   knowledge base. Facts are stable teaching points; source URLs point at the
-   issuing body's landing page rather than deep links, so nothing pretends to be
-   a verified deep citation it is not. Do not rely on it clinically.
-2. **Not medical advice and not a clinical decision tool.** It is an educational
-   reference that guides users back to guidelines and seniors for any
-   patient-specific decision.
-3. **Retrieval is currently lexical**, so phrasing far from the seed keywords
-   may abstain even when a related fact exists — expected until semantic search
-   lands in Phase 2.
+1. **The bundled seed library is a demonstration set**, not a full clinical
+   knowledge base. Source URLs point at the issuing body's landing page rather
+   than deep links. Do not rely on it clinically.
+2. **Not medical advice and not a clinical decision tool.** It is an
+   educational reference that guides users back to guidelines and seniors for
+   any patient-specific decision.
+3. **Retrieval is lexical + FTS**, so phrasing far from a passage's vocabulary
+   may abstain even when a related fact exists — expected until semantic
+   search lands.
 
 ## Getting started locally
 
@@ -84,11 +123,6 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Deploying
-
-Any Next.js host works (Railway, Vercel). No environment variables are required
-for the seed-content version. When the Phase 2 ingestion pipeline and a real
-LLM synthesis step are added, their API keys and database URL are read from
-`process.env`.
+Open [http://localhost:3000](http://localhost:3000). Optional: set
+`DATABASE_URL` (any Postgres) and `ADMIN_PASSWORD` to exercise the full loop
+locally.

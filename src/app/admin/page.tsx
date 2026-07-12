@@ -1,0 +1,17 @@
+import type { Metadata } from "next";
+import { AdminPanel } from "@/components/AdminPanel";
+
+export const metadata: Metadata = {
+  title: "Admin — MedCheck",
+  description: "Content curation: ingest vetted sources and review asked questions.",
+  robots: { index: false, follow: false },
+};
+
+export default function AdminPage() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+      <AdminPanel />
+    </div>
+  );
+}

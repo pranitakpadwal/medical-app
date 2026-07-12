@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { answerQuestion } from "@/lib/answer";
 
-// This handler retrieves from a static in-memory library, so there is nothing
-// to cache and no external calls to make.
+// Answers depend on the live library (database) and log every question.
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
@@ -22,6 +21,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Field 'question' is required." }, { status: 400 });
   }
 
-  const answer = answerQuestion(question);
+  const answer = await answerQuestion(question);
   return NextResponse.json(answer);
 }
