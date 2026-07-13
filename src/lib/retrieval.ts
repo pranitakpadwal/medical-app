@@ -40,22 +40,41 @@ interface ScorableChunk {
   text: string;
 }
 
-/** Term-overlap score in [0,1]; keyword/topic hits weigh double. */
-function scoreChunk(uniqueQueryTerms: Set<string>, chunk: ScorableChunk): number {
+/**
+ * How many DISTINCT query terms a chunk touches, and the weighted score.
+ *
+ * `matched` is the precision signal: a single shared common word (e.g. a
+ * glaucoma question hitting the hypertension passage on "pressure") touches
+ * only ONE query term. Requiring two independent term matches to answer is
+ * what stops those confident-but-wrong citations — see `MIN_MATCHED_TERMS`.
+ */
+function scoreChunk(
+  uniqueQueryTerms: Set<string>,
+  chunk: ScorableChunk,
+): { score: number; matched: number } {
   const terms = new Set([
     ...tokenize(chunk.text),
     ...chunk.keywords.flatMap(tokenize),
     ...tokenize(chunk.topic),
   ]);
   let hits = 0;
+  let matched = 0;
   for (const term of uniqueQueryTerms) {
     if (terms.has(term)) {
+      matched += 1;
       // Explicit keyword matches are weighted higher than body-text matches.
       hits += chunk.keywords.some((k) => k.toLowerCase().includes(term)) ? 2 : 1;
     }
   }
-  return Math.min(hits / uniqueQueryTerms.size, 1);
+  return { score: Math.min(hits / uniqueQueryTerms.size, 1), matched };
 }
+
+/**
+ * Minimum distinct query terms a passage must match to be answerable. Below
+ * this we abstain rather than cite an irrelevant source on a coincidental word.
+ * A one-word query is exempt (there is only one term to match).
+ */
+const MIN_MATCHED_TERMS = 2;
 
 export interface RetrievalResult {
   passages: RetrievedPassage[];
@@ -68,11 +87,13 @@ function rank(
   candidates: RetrievedPassage[],
   limit: number,
 ): RetrievalResult {
-  const scored = candidates
-    .map((p) => ({ ...p, score: scoreChunk(uniqueQueryTerms, p.chunk) }))
-    .filter((p) => p.score > 0)
+  const minMatched = uniqueQueryTerms.size <= 1 ? 1 : MIN_MATCHED_TERMS;
+  const scored: RetrievedPassage[] = candidates
+    .map((p) => ({ passage: p, ...scoreChunk(uniqueQueryTerms, p.chunk) }))
+    .filter((r) => r.score > 0 && r.matched >= minMatched)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((r) => ({ ...r.passage, score: r.score }));
   return { passages: scored, topScore: scored[0]?.score ?? 0 };
 }
 
