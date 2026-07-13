@@ -66,18 +66,19 @@ async function bootstrap(sql: Sql): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now()
     )`;
 
-  // Seed a fresh database with the same content the in-memory fallback serves.
-  const [{ count }] = await sql<[{ count: string }]>`SELECT count(*) FROM chunks`;
-  if (Number(count) === 0) {
-    for (const s of SOURCES) {
-      await sql`
-        INSERT INTO sources (id, title, publisher, year, url, evidence)
-        VALUES (${s.id}, ${s.title}, ${s.publisher}, ${s.year}, ${s.url}, ${s.evidence})
-        ON CONFLICT (id) DO NOTHING`;
-    }
-    for (const c of CHUNKS) {
-      await insertChunk(sql, c.id, c.sourceId, c.topic, c.keywords, c.text);
-    }
+  // Sync the built-in seed library into the database. This is idempotent
+  // (ON CONFLICT DO NOTHING), so it runs on every boot: a fresh database gets
+  // the full seed set, and an already-seeded one picks up any newly shipped
+  // seed content on the next deploy — without touching rows a curator has
+  // added or edited through /admin.
+  for (const s of SOURCES) {
+    await sql`
+      INSERT INTO sources (id, title, publisher, year, url, evidence)
+      VALUES (${s.id}, ${s.title}, ${s.publisher}, ${s.year}, ${s.url}, ${s.evidence})
+      ON CONFLICT (id) DO NOTHING`;
+  }
+  for (const c of CHUNKS) {
+    await insertChunk(sql, c.id, c.sourceId, c.topic, c.keywords, c.text);
   }
 }
 
