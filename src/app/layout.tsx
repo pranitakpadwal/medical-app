@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 function TopNav() {
   return (
     <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-10">
-      <nav className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between">
+      <nav className="mx-auto max-w-4xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="font-semibold tracking-tight text-lg">
           <span className="text-accent">Saksh</span>ya
         </Link>
@@ -36,6 +36,12 @@ function TopNav() {
           >
             Learn
           </Link>
+          <Link
+            href="/explore"
+            className="px-3 py-1.5 rounded-md hover:bg-background transition-colors"
+          >
+            Explore
+          </Link>
         </div>
       </nav>
     </header>
@@ -49,9 +55,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <TopNav />
-        <main className="flex-1 w-full mx-auto max-w-3xl px-4 py-6">{children}</main>
+        <main className="flex-1 w-full mx-auto max-w-4xl px-4 py-6">{children}</main>
         <footer className="border-t border-border text-xs text-muted">
-          <div className="mx-auto max-w-3xl px-4 py-4">
+          <div className="mx-auto max-w-4xl px-4 py-4">
             Educational reference only — not medical advice. Always verify
             against your institution&apos;s guidelines and your seniors before
             any patient-specific decision.

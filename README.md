@@ -64,8 +64,22 @@ clinicians: every answer carries its citations.
   knowledge. Without `ANTHROPIC_API_KEY`, or if the call fails, falls back to
   showing the raw cited passages (Phase 1/2 behavior) — synthesis is a
   presentation layer, never a dependency for correctness.
-- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode** chat UI with
-  citations, evidence badges and feedback buttons.
+- **Questions dedupe onto one row and cache their synthesis**
+  (`questions.question_key`, `getCachedSynthesis` in `lib/db.ts`): asking the
+  same question again reuses the stored answer instead of paying for Claude a
+  second time, and its `ask_count` goes up instead of a new row appearing.
+  This is what makes repeated/viral questions cheap and gives each distinct
+  question a stable identity.
+- `src/app/q/[id]/page.tsx` — a **permanent, shareable URL per question**,
+  answered or not. Renders the stored answer straight from the database (no
+  re-retrieval, no repeat Claude call), with real `<title>`/description
+  metadata for sharing. AskChat links to it after every answer.
+- `src/app/explore/page.tsx` — browse every question asked so far, most-asked
+  first, linking to its permalink. Turns the question log into something
+  students can actually discover, not just an admin-only activity feed.
+- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode**: a hero
+  section (tagline, live stats, "how it works"), the chat UI with citations,
+  evidence badges and feedback buttons, and a CTA into Explore.
 - `src/app/learn/page.tsx` + `src/data/cases.ts` — **Learn mode**, short
   clinical case studies with a guided reveal for "tired mode" revision.
 - `src/app/manifest.ts` — PWA manifest so the app installs to a home screen.
@@ -90,7 +104,7 @@ Phase 2 features:
 | `DATABASE_URL` | No | Enables the growing library, question logging, feedback, admin. Without it the app serves the built-in seed library. |
 | `ADMIN_PASSWORD` | No | Enables `/admin` and the ingestion API. Without it admin endpoints return 501. |
 | `NCBI_API_KEY` | No | Optional. Raises the PubMed E-utilities rate limit from 3 to 10 requests/sec. Get one free at [ncbi.nlm.nih.gov/account](https://www.ncbi.nlm.nih.gov/account/). Not needed at pilot scale. |
-| `ANTHROPIC_API_KEY` | No | Enables prose synthesis over retrieved passages (the "co-pilot" answer, not just quoted blocks). Get one at [console.anthropic.com](https://console.anthropic.com). Without it, Ask mode still works exactly as before — raw cited passages. Cost is roughly ₹1–3/answered question at pilot volume. |
+| `ANTHROPIC_API_KEY` | No | Enables prose synthesis over retrieved passages (the "co-pilot" answer, not just quoted blocks). Get one at [console.anthropic.com](https://console.anthropic.com). Without it, Ask mode still works exactly as before — raw cited passages. Cost is roughly ₹1–3/*distinct* answered question — repeats of the same question are cached and cost nothing (see below). |
 
 ## Content workflow (the real product loop)
 
@@ -118,9 +132,11 @@ or full-text journal articles behind a paywall (only their public abstract).
 - **Phase 2 (this iteration):** Postgres-backed growing library, FTS retrieval
   with stemming, question logging + unanswered dashboard, answer feedback,
   password-protected ingestion, PubMed search-and-ingest, Claude prose
-  synthesis over retrieved passages. **Next:** embedding-based semantic
-  retrieval (pgvector) — the remaining piece for when phrasing drifts far
-  enough from a passage's vocabulary that keyword/FTS matching misses it.
+  synthesis over retrieved passages (with per-question caching so repeats are
+  free), permanent per-question URLs, and an Explore page to browse them, plus
+  a proper homepage. **Next:** embedding-based semantic retrieval (pgvector) —
+  the remaining piece for when phrasing drifts far enough from a passage's
+  vocabulary that keyword/FTS matching misses it.
 - **Phase 3:** verified PG/faculty accounts that endorse or correct answers
   ("verified by a PG" badge), per-answer flagging, WhatsApp bot front-end,
   institution partnerships.

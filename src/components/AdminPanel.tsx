@@ -10,7 +10,8 @@ interface Overview {
     status: string;
     top_score: number;
     helpful: boolean | null;
-    created_at: string;
+    ask_count: number;
+    last_asked_at: string;
   }[];
 }
 
@@ -265,9 +266,12 @@ export function AdminPanel() {
             <p className="text-sm text-muted">No questions logged yet.</p>
           )}
           {overview?.recent.map((q) => (
-            <div
+            <a
               key={q.id}
-              className="rounded-lg border border-border bg-card px-3 py-2 flex flex-wrap items-center gap-2 text-sm"
+              href={`/q/${q.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-border bg-card px-3 py-2 flex flex-wrap items-center gap-2 text-sm hover:border-accent transition-colors"
             >
               <span
                 className={`inline-block h-2 w-2 rounded-full ${
@@ -277,11 +281,11 @@ export function AdminPanel() {
               />
               <span className="flex-1 min-w-40">{q.question}</span>
               <span className="text-[11px] text-muted">
-                {q.status}
+                {q.status} · asked {q.ask_count}×
                 {q.helpful === true && " · 👍"}
                 {q.helpful === false && " · 👎"}
               </span>
-            </div>
+            </a>
           ))}
         </div>
       </section>

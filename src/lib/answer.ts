@@ -1,5 +1,5 @@
-import { getDb } from "@/lib/db";
-import { retrieve } from "@/lib/retrieval";
+import { getCachedSynthesis, getDb } from "@/lib/db";
+import { normalize, retrieve } from "@/lib/retrieval";
 import { synthesize } from "@/lib/synthesize";
 import type { Answer, Source } from "@/lib/types";
 
@@ -10,7 +10,7 @@ import type { Answer, Source } from "@/lib/types";
  */
 const ABSTAIN_THRESHOLD = 0.34;
 
-const DISCLAIMER =
+export const DISCLAIMER =
   "Educational reference only — not medical advice. Verify against your institution's guidelines and your seniors before any patient-specific decision.";
 
 function dedupeSources(sources: Source[]): Source[] {
@@ -22,20 +22,36 @@ function dedupeSources(sources: Source[]): Source[] {
 }
 
 /**
- * Log the question for the content roadmap ("what are students asking that we
- * can't answer?"). Failure to log must never break answering.
+ * Log the question, upserting onto one row per normalized question text.
+ * This is both the content roadmap ("what are students asking that we can't
+ * answer?" — now with a real ask_count instead of a flat activity log) and
+ * what gives each distinct question a stable, reusable permalink at
+ * /q/[id]: repeated identical questions land on the same id and refresh its
+ * stored answer, rather than piling up duplicate rows. Failure to log must
+ * never break answering.
  */
 async function logQuestion(
   question: string,
   status: Answer["status"],
   topScore: number,
+  synthesis: string | null,
+  passageIds: string[],
 ): Promise<number | undefined> {
   try {
     const sql = await getDb();
     if (!sql) return undefined;
+    const key = normalize(question);
     const [row] = await sql<[{ id: number }]>`
-      INSERT INTO questions (question, status, top_score)
-      VALUES (${question}, ${status}, ${topScore})
+      INSERT INTO questions (question, question_key, status, top_score, synthesis, passage_ids, ask_count, last_asked_at)
+      VALUES (${question}, ${key}, ${status}, ${topScore}, ${synthesis}, ${passageIds}, 1, now())
+      ON CONFLICT (question_key) DO UPDATE SET
+        question = EXCLUDED.question,
+        status = EXCLUDED.status,
+        top_score = EXCLUDED.top_score,
+        synthesis = EXCLUDED.synthesis,
+        passage_ids = EXCLUDED.passage_ids,
+        ask_count = questions.ask_count + 1,
+        last_asked_at = now()
       RETURNING id`;
     return Number(row.id);
   } catch (err) {
@@ -72,7 +88,7 @@ export async function answerQuestion(question: string): Promise<Answer> {
   const { passages, topScore } = await retrieve(trimmed);
 
   if (passages.length === 0 || topScore < ABSTAIN_THRESHOLD) {
-    const questionId = await logQuestion(trimmed, "abstained", topScore);
+    const questionId = await logQuestion(trimmed, "abstained", topScore, null, []);
     return {
       status: "abstained",
       question: trimmed,
@@ -85,8 +101,10 @@ export async function answerQuestion(question: string): Promise<Answer> {
     };
   }
 
-  const questionId = await logQuestion(trimmed, "answered", topScore);
-  const synthesis = await synthesize(trimmed, passages);
+  const passageIds = passages.map((p) => p.chunk.id);
+  const cached = await getCachedSynthesis(normalize(trimmed), passageIds);
+  const synthesis = cached ?? (await synthesize(trimmed, passages));
+  const questionId = await logQuestion(trimmed, "answered", topScore, synthesis, passageIds);
   return {
     status: "answered",
     question: trimmed,

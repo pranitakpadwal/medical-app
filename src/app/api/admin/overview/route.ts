@@ -27,9 +27,9 @@ export async function GET(request: Request) {
       (SELECT count(*) FROM questions WHERE status = 'abstained') AS abstained`;
 
   const recent = await sql`
-    SELECT id, question, status, top_score, helpful, created_at
+    SELECT id, question, status, top_score, helpful, ask_count, last_asked_at
     FROM questions
-    ORDER BY created_at DESC
+    ORDER BY last_asked_at DESC
     LIMIT 50`;
 
   return NextResponse.json({
@@ -39,6 +39,8 @@ export async function GET(request: Request) {
       questions: Number(stats.questions),
       abstained: Number(stats.abstained),
     },
-    recent,
+    // questions.id is bigint; postgres.js returns it as a string to avoid
+    // silent precision loss. Coerce back so the client's `number` type holds.
+    recent: recent.map((r) => ({ ...r, id: Number(r.id) })),
   });
 }

@@ -63,8 +63,12 @@ function stem(t: string): string {
   return t;
 }
 
-/** Lowercase, strip punctuation, collapse whitespace — shared by tokens and phrases. */
-function normalize(input: string): string {
+/**
+ * Lowercase, strip punctuation, collapse whitespace — shared by tokens and
+ * phrases here, and reused in db.ts as the question dedupe key for
+ * permalinks (two askers phrasing a question identically land on one row).
+ */
+export function normalize(input: string): string {
   return input
     .toLowerCase()
     .replace(/[^a-z0-9%.\s]/g, " ")

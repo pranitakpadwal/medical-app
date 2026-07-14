@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Answer } from "@/lib/types";
 import { AnswerCard } from "@/components/AnswerCard";
 
@@ -87,7 +88,17 @@ export function AskChat() {
                 {turn.error}
               </div>
             ) : turn.answer ? (
-              <AnswerCard answer={turn.answer} />
+              <div className="space-y-1.5">
+                <AnswerCard answer={turn.answer} />
+                {typeof turn.answer.questionId === "number" && (
+                  <Link
+                    href={`/q/${turn.answer.questionId}`}
+                    className="inline-block text-xs text-accent hover:underline"
+                  >
+                    Permanent link to this question ↗
+                  </Link>
+                )}
+              </div>
             ) : (
               <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted animate-pulse">
                 Searching vetted sources…

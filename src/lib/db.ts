@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { CHUNKS, SOURCES } from "@/data/sources";
+import type { EvidenceLevel, RetrievedPassage } from "@/lib/types";
 
 /**
  * Postgres access with graceful absence.
@@ -65,6 +66,18 @@ async function bootstrap(sql: Sql): Promise<void> {
       helpful boolean,
       created_at timestamptz NOT NULL DEFAULT now()
     )`;
+  // Migrations for columns added after the initial deploy. ADD COLUMN IF NOT
+  // EXISTS is idempotent and safe to run on every boot, including against an
+  // already-seeded database that predates these columns.
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_key text`;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS ask_count int NOT NULL DEFAULT 1`;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS last_asked_at timestamptz NOT NULL DEFAULT now()`;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS synthesis text`;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS passage_ids text[] NOT NULL DEFAULT '{}'`;
+  // Repeated identical questions upsert onto one row (see answer.ts) instead
+  // of piling up duplicates, so this is both a dedupe key and what gives each
+  // question a stable, reusable permalink at /q/[id].
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS questions_question_key_idx ON questions (question_key)`;
 
   // Sync the built-in seed library into the database. This is idempotent
   // (ON CONFLICT DO NOTHING), so it runs on every boot: a fresh database gets
@@ -122,4 +135,140 @@ export async function getDb(): Promise<Sql | null> {
     globalThis.__medcheckReady = undefined;
     return null;
   }
+}
+
+export interface PublicStats {
+  sources: number;
+  chunks: number;
+  questionsAnswered: number;
+}
+
+/** Homepage stats strip. Falls back to the static seed library size with no DB. */
+export async function getPublicStats(): Promise<PublicStats> {
+  const sql = await getDb();
+  if (!sql) return { sources: SOURCES.length, chunks: CHUNKS.length, questionsAnswered: 0 };
+  const [row] = await sql<[{ sources: string; chunks: string; answered: string }]>`
+    SELECT (SELECT count(*) FROM sources) AS sources,
+           (SELECT count(*) FROM chunks) AS chunks,
+           (SELECT count(*) FROM questions WHERE status = 'answered') AS answered`;
+  return {
+    sources: Number(row.sources),
+    chunks: Number(row.chunks),
+    questionsAnswered: Number(row.answered),
+  };
+}
+
+export interface QuestionRow {
+  id: number;
+  question: string;
+  status: "answered" | "abstained";
+  top_score: number;
+  helpful: boolean | null;
+  synthesis: string | null;
+  passage_ids: string[];
+  ask_count: number;
+  created_at: string;
+  last_asked_at: string;
+}
+
+/**
+ * postgres.js returns `bigint` columns (questions.id) as strings to avoid
+ * silent precision loss, even though our ids are always in safe-integer
+ * range here — coerce back to number so `typeof id === "number"` checks
+ * (e.g. the feedback UI) work as the QuestionRow type promises.
+ */
+function coerceQuestionRow(row: QuestionRow): QuestionRow {
+  return { ...row, id: Number(row.id) };
+}
+
+/**
+ * Reuse a previous synthesis instead of paying for Claude again when the
+ * exact same question (by normalized text) was already answered from the
+ * exact same set of retrieved passages. This is what keeps repeated/viral
+ * questions cheap — the first asker pays for synthesis, everyone after gets
+ * the cached answer. A cache miss (different passages — e.g. the library
+ * grew) just falls through to a fresh, correctly-grounded synthesis.
+ */
+export async function getCachedSynthesis(
+  questionKey: string,
+  passageIds: string[],
+): Promise<string | null> {
+  const sql = await getDb();
+  if (!sql) return null;
+  const rows = await sql<[{ synthesis: string | null }]>`
+    SELECT synthesis FROM questions
+    WHERE question_key = ${questionKey}
+      AND passage_ids = ${passageIds}
+      AND synthesis IS NOT NULL
+    LIMIT 1`;
+  return rows[0]?.synthesis ?? null;
+}
+
+/** Look up a logged question by id — the data behind a /q/[id] permalink. */
+export async function getQuestionById(id: number): Promise<QuestionRow | null> {
+  if (!Number.isInteger(id)) return null;
+  const sql = await getDb();
+  if (!sql) return null;
+  const rows = await sql<QuestionRow[]>`SELECT * FROM questions WHERE id = ${id}`;
+  return rows[0] ? coerceQuestionRow(rows[0]) : null;
+}
+
+/**
+ * Questions for the /explore browse page: most-asked first, so the page
+ * surfaces what students actually need rather than a raw activity log.
+ */
+export async function listQuestions(limit = 100): Promise<QuestionRow[]> {
+  const sql = await getDb();
+  if (!sql) return [];
+  const rows = await sql<QuestionRow[]>`
+    SELECT * FROM questions
+    ORDER BY ask_count DESC, last_asked_at DESC
+    LIMIT ${limit}`;
+  return rows.map(coerceQuestionRow);
+}
+
+interface ChunkWithSourceRow {
+  id: string;
+  source_id: string;
+  topic: string;
+  keywords: string[];
+  body: string;
+  title: string;
+  publisher: string;
+  year: number;
+  url: string;
+  evidence: EvidenceLevel;
+}
+
+/**
+ * Re-fetch chunks + sources for a stored, ordered list of chunk ids —
+ * reconstructs the passages behind a permalink without re-running retrieval
+ * (stable, free, and reflects any later curator corrections to that chunk).
+ */
+export async function passagesForIds(passageIds: string[]): Promise<RetrievedPassage[]> {
+  if (passageIds.length === 0) return [];
+  const sql = await getDb();
+  if (!sql) return [];
+  const rows = await sql<ChunkWithSourceRow[]>`
+    SELECT c.id, c.source_id, c.topic, c.keywords, c.body,
+           s.title, s.publisher, s.year, s.url, s.evidence
+    FROM chunks c
+    JOIN sources s ON s.id = c.source_id
+    WHERE c.id = ANY(${passageIds})`;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return passageIds
+    .map((id) => byId.get(id))
+    .filter((r): r is ChunkWithSourceRow => r !== undefined)
+    .map((r) => ({
+      chunk: { id: r.id, sourceId: r.source_id, topic: r.topic, keywords: r.keywords, text: r.body },
+      source: {
+        id: r.source_id,
+        title: r.title,
+        publisher: r.publisher,
+        year: r.year,
+        url: r.url,
+        evidence: r.evidence,
+      },
+      score: 1,
+    }));
 }
