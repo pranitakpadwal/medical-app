@@ -62,12 +62,25 @@ export function AnswerCard({ answer }: { answer: Answer }) {
         </p>
       </div>
 
-      {answer.passages.map(({ chunk, source, score }) => (
+      {answer.synthesis && (
+        <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{answer.synthesis}</p>
+      )}
+
+      {answer.synthesis && answer.passages.length > 0 && (
+        <p className="text-xs font-medium text-muted">
+          Sources — bracketed numbers above match these:
+        </p>
+      )}
+
+      {answer.passages.map(({ chunk, source, score }, i) => (
         <div
           key={chunk.id}
           className="rounded-lg border border-border bg-background/50 p-3 space-y-2"
         >
           <div className="flex flex-wrap items-center gap-2">
+            {answer.synthesis && (
+              <span className="text-xs font-semibold text-accent tabular-nums">[{i + 1}]</span>
+            )}
             <span className="text-xs font-medium text-foreground">{chunk.topic}</span>
             <EvidenceBadge level={source.evidence} />
             <span className="ml-auto text-[11px] text-muted tabular-nums">

@@ -57,6 +57,13 @@ clinicians: every answer carries its citations.
   with journal/year/PMID, evidence level inferred from publication type
   (guideline / systematic review / study). The fastest way to grow the
   library — one search adds several sources at once, no manual paste.
+- `src/lib/synthesize.ts` — turns already-retrieved passages into clean prose
+  via Claude, with bracketed citations (`[1][2]`) indexing back into the same
+  passages. Runs strictly *after* the grounding/abstention decision — it can
+  only phrase the passages already selected, never answer from its own
+  knowledge. Without `ANTHROPIC_API_KEY`, or if the call fails, falls back to
+  showing the raw cited passages (Phase 1/2 behavior) — synthesis is a
+  presentation layer, never a dependency for correctness.
 - `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode** chat UI with
   citations, evidence badges and feedback buttons.
 - `src/app/learn/page.tsx` + `src/data/cases.ts` — **Learn mode**, short
@@ -83,6 +90,7 @@ Phase 2 features:
 | `DATABASE_URL` | No | Enables the growing library, question logging, feedback, admin. Without it the app serves the built-in seed library. |
 | `ADMIN_PASSWORD` | No | Enables `/admin` and the ingestion API. Without it admin endpoints return 501. |
 | `NCBI_API_KEY` | No | Optional. Raises the PubMed E-utilities rate limit from 3 to 10 requests/sec. Get one free at [ncbi.nlm.nih.gov/account](https://www.ncbi.nlm.nih.gov/account/). Not needed at pilot scale. |
+| `ANTHROPIC_API_KEY` | No | Enables prose synthesis over retrieved passages (the "co-pilot" answer, not just quoted blocks). Get one at [console.anthropic.com](https://console.anthropic.com). Without it, Ask mode still works exactly as before — raw cited passages. Cost is roughly ₹1–3/answered question at pilot volume. |
 
 ## Content workflow (the real product loop)
 
@@ -109,10 +117,10 @@ or full-text journal articles behind a paywall (only their public abstract).
   abstention, Learn mode case studies, seed content.
 - **Phase 2 (this iteration):** Postgres-backed growing library, FTS retrieval
   with stemming, question logging + unanswered dashboard, answer feedback,
-  password-protected ingestion, PubMed search-and-ingest. **Next:**
-  embedding-based semantic retrieval (pgvector) and an LLM synthesis layer
-  that phrases retrieved passages into prose — only ever over the cited text,
-  never model memory (needs an Anthropic API key).
+  password-protected ingestion, PubMed search-and-ingest, Claude prose
+  synthesis over retrieved passages. **Next:** embedding-based semantic
+  retrieval (pgvector) — the remaining piece for when phrasing drifts far
+  enough from a passage's vocabulary that keyword/FTS matching misses it.
 - **Phase 3:** verified PG/faculty accounts that endorse or correct answers
   ("verified by a PG" badge), per-answer flagging, WhatsApp bot front-end,
   institution partnerships.

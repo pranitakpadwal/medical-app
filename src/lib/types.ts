@@ -54,6 +54,13 @@ export interface Answer {
   passages: RetrievedPassage[];
   /** Distinct sources cited across the passages. */
   sources: Source[];
+  /**
+   * Claude-synthesized prose over `passages` only, with bracketed citations
+   * like [1][2] indexing into `passages` (1-based). Undefined when no
+   * ANTHROPIC_API_KEY is configured or synthesis failed — UI falls back to
+   * showing the raw passages, which always remain the source of truth.
+   */
+  synthesis?: string;
   /** Always present — the safety framing shown with every answer. */
   disclaimer: string;
 }

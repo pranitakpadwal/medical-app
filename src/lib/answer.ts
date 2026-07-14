@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { retrieve } from "@/lib/retrieval";
+import { synthesize } from "@/lib/synthesize";
 import type { Answer, Source } from "@/lib/types";
 
 /**
@@ -47,10 +48,12 @@ async function logQuestion(
  * The core grounded-answer engine.
  *
  * It never generates free-form medical content: it retrieves passages from the
- * vetted library and returns them verbatim with citations, or abstains. This is
- * the "extractive" grounding mode. An optional LLM synthesis step can later sit
- * on top to phrase these passages into prose — but only ever over this same
- * retrieved, cited text, never from the model's own memory.
+ * vetted library first, and only decides to answer (vs. abstain) based on
+ * those passages. When an ANTHROPIC_API_KEY is configured, Claude then
+ * phrases the SAME retrieved passages into prose with bracketed citations
+ * (`synthesize`) — a presentation step that runs strictly after the grounding
+ * decision, never a substitute for it. Without a key, or if synthesis fails,
+ * the raw cited passages are returned exactly as in Phase 1/2.
  */
 export async function answerQuestion(question: string): Promise<Answer> {
   const trimmed = question.trim();
@@ -83,6 +86,7 @@ export async function answerQuestion(question: string): Promise<Answer> {
   }
 
   const questionId = await logQuestion(trimmed, "answered", topScore);
+  const synthesis = await synthesize(trimmed, passages);
   return {
     status: "answered",
     question: trimmed,
@@ -90,6 +94,7 @@ export async function answerQuestion(question: string): Promise<Answer> {
     headline: `Found ${passages.length} grounded passage${passages.length > 1 ? "s" : ""} from vetted sources.`,
     passages,
     sources: dedupeSources(passages.map((p) => p.source)),
+    synthesis: synthesis ?? undefined,
     disclaimer: DISCLAIMER,
   };
 }
