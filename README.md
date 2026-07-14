@@ -1,10 +1,11 @@
-# MedCheck — fact-checked answers for medical students
+# Sakshya (साक्ष्य) — evidence-based answers for Indian medical students
 
-A mobile-friendly web app where final-year medical students (and, later, PGs)
-can ask clinical and lab questions and get answers that are **grounded only in
-vetted sources, with citations** — or an honest "not covered yet" when the
-library doesn't have a trustworthy source. Built with Next.js (App Router) and
-installable to a phone home screen as a PWA.
+An India-focused, OpenEvidence-style co-pilot: a mobile-friendly web app where
+final-year medical students (and, later, PGs) can ask clinical and lab
+questions and get answers that are **grounded only in vetted sources, with
+citations** — or an honest "not covered yet" when the library doesn't have a
+trustworthy source. Built with Next.js (App Router) and installable to a phone
+home screen as a PWA.
 
 It exists because students told us the status quo is hours in the library and
 still no confident, source-backed answer. The design goal is the opposite of a
@@ -51,6 +52,11 @@ clinicians: every answer carries its citations.
   content curation: paste a source (metadata + text) → it is chunked
   (`src/lib/chunking.ts`) and becomes retrievable immediately; dashboard shows
   library stats and recent/unanswered questions.
+- `src/lib/pubmed.ts` + `src/app/api/admin/pubmed/route.ts` — search PubMed
+  (NCBI E-utilities) and ingest the results directly: real, citable abstracts
+  with journal/year/PMID, evidence level inferred from publication type
+  (guideline / systematic review / study). The fastest way to grow the
+  library — one search adds several sources at once, no manual paste.
 - `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode** chat UI with
   citations, evidence badges and feedback buttons.
 - `src/app/learn/page.tsx` + `src/data/cases.ts` — **Learn mode**, short
@@ -76,20 +82,26 @@ Phase 2 features:
 | --- | --- | --- |
 | `DATABASE_URL` | No | Enables the growing library, question logging, feedback, admin. Without it the app serves the built-in seed library. |
 | `ADMIN_PASSWORD` | No | Enables `/admin` and the ingestion API. Without it admin endpoints return 501. |
+| `NCBI_API_KEY` | No | Optional. Raises the PubMed E-utilities rate limit from 3 to 10 requests/sec. Get one free at [ncbi.nlm.nih.gov/account](https://www.ncbi.nlm.nih.gov/account/). Not needed at pilot scale. |
 
 ## Content workflow (the real product loop)
 
 1. Students ask questions; every question is logged.
 2. `/admin` shows **abstained questions** — the exact list of what students
    need that the library doesn't cover.
-3. A curator pastes the relevant vetted source (public guidelines: WHO, ICMR,
-   MoHFW/NVBDCP STGs; or lab manuals with permission) with its citation
-   metadata. It becomes retrievable immediately — no deploy needed.
+3. A curator either:
+   - **Searches PubMed** (e.g. "dengue warning signs management") and ingests
+     the results in one click — real abstracts, real citations, evidence level
+     inferred automatically; or
+   - **Pastes a source directly** (public guidelines: WHO, ICMR, MoHFW/NVBDCP
+     STGs; or lab manuals with permission) with its citation metadata.
+   Either way it becomes retrievable immediately — no deploy needed.
 4. Re-asking the question now returns a grounded, cited answer.
 
-**Content rights:** only ingest text you may use — public national/international
-guidelines and materials with the owner's permission. Not scanned copyrighted
-textbooks.
+**Content rights:** PubMed abstracts are public and citable as-is. For anything
+else, only ingest text you may use — public national/international guidelines
+and materials with the owner's permission. Not scanned copyrighted textbooks
+or full-text journal articles behind a paywall (only their public abstract).
 
 ## Roadmap
 
@@ -97,9 +109,10 @@ textbooks.
   abstention, Learn mode case studies, seed content.
 - **Phase 2 (this iteration):** Postgres-backed growing library, FTS retrieval
   with stemming, question logging + unanswered dashboard, answer feedback,
-  password-protected ingestion. **Next:** embedding-based semantic retrieval
-  (pgvector) and an LLM synthesis layer that phrases retrieved passages into
-  prose — only ever over the cited text, never model memory (needs API keys).
+  password-protected ingestion, PubMed search-and-ingest. **Next:**
+  embedding-based semantic retrieval (pgvector) and an LLM synthesis layer
+  that phrases retrieved passages into prose — only ever over the cited text,
+  never model memory (needs an Anthropic API key).
 - **Phase 3:** verified PG/faculty accounts that endorse or correct answers
   ("verified by a PG" badge), per-answer flagging, WhatsApp bot front-end,
   institution partnerships.

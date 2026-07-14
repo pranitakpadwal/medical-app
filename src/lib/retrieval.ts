@@ -279,7 +279,7 @@ export async function retrieve(question: string, limit = 3): Promise<RetrievalRe
     try {
       return await dbRetrieve(sql, queryTerms, normQuery, limit);
     } catch (err) {
-      console.error("MedCheck: DB retrieval failed, using seed library.", err);
+      console.error("Sakshya: DB retrieval failed, using seed library.", err);
     }
   }
   return seedRetrieve(new Set(queryTerms), normQuery, limit);

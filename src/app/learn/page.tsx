@@ -3,7 +3,7 @@ import { CASES } from "@/data/cases";
 import { CaseCard } from "@/components/CaseCard";
 
 export const metadata: Metadata = {
-  title: "Learn — case studies | MedCheck",
+  title: "Learn — case studies | Sakshya",
   description:
     "Short clinical case studies for quick revision, each with a guided reveal and cited teaching point.",
 };

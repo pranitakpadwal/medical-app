@@ -85,11 +85,45 @@ export function AdminPanel() {
     }
   }
 
+  async function addFromPubMed(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    try {
+      const res = await fetch("/api/admin/pubmed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": key },
+        body: JSON.stringify({
+          query: fd.get("query"),
+          topic: fd.get("topic"),
+          keywords: fd.get("keywords"),
+          maxResults: Number(fd.get("maxResults")),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "PubMed ingestion failed.");
+      setNotice(
+        `Added ${data.count} article(s) from PubMed: ${data.added
+          .map((a: { title: string }) => a.title)
+          .join("; ")}`,
+      );
+      form.reset();
+      await loadOverview(key);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PubMed ingestion failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!unlocked) {
     return (
       <form onSubmit={unlock} className="max-w-sm space-y-3">
         <p className="text-sm text-muted">
-          Content curation for MedCheck. Enter the admin password.
+          Content curation for Sakshya. Enter the admin password.
         </p>
         <input
           type="password"
@@ -173,6 +207,51 @@ export function AdminPanel() {
           </button>
           {notice && <p className="text-sm text-accent">{notice}</p>}
           {error && <p className="text-sm text-red-500">{error}</p>}
+        </form>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Ingest from PubMed</h2>
+        <p className="text-xs text-muted">
+          Pull real, citable abstracts straight from PubMed — the fastest way to
+          grow the library. One search can add several sources at once.
+        </p>
+        <form onSubmit={addFromPubMed} className="space-y-3">
+          <input
+            name="query"
+            placeholder="PubMed search (e.g. dengue warning signs management)"
+            required
+            className={inputCls}
+          />
+          <div className="grid sm:grid-cols-3 gap-3">
+            <input
+              name="topic"
+              placeholder="Topic label (e.g. Dengue management)"
+              required
+              className={`${inputCls} sm:col-span-2`}
+            />
+            <input
+              name="maxResults"
+              type="number"
+              min={1}
+              max={10}
+              defaultValue={5}
+              className={inputCls}
+              aria-label="Max results"
+            />
+          </div>
+          <input
+            name="keywords"
+            placeholder="Keywords, comma-separated (applied to all results in this search)"
+            className={inputCls}
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+          >
+            {busy ? "Searching PubMed…" : "Search & ingest"}
+          </button>
         </form>
       </section>
 

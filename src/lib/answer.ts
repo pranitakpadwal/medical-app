@@ -38,7 +38,7 @@ async function logQuestion(
       RETURNING id`;
     return Number(row.id);
   } catch (err) {
-    console.error("MedCheck: failed to log question.", err);
+    console.error("Sakshya: failed to log question.", err);
     return undefined;
   }
 }

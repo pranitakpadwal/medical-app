@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AdminPanel } from "@/components/AdminPanel";
 
 export const metadata: Metadata = {
-  title: "Admin — MedCheck",
+  title: "Admin — Sakshya",
   description: "Content curation: ingest vetted sources and review asked questions.",
   robots: { index: false, follow: false },
 };

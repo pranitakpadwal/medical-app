@@ -3,11 +3,11 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MedCheck — fact-checked answers for med students",
+  title: "Sakshya — evidence-based answers for Indian medical students",
   description:
     "Ask clinical and lab questions and get answers grounded only in vetted sources, with citations — or an honest 'not covered yet'. Educational reference, not medical advice.",
-  applicationName: "MedCheck",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "MedCheck" },
+  applicationName: "Sakshya",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Sakshya" },
 };
 
 export const viewport: Viewport = {
@@ -21,7 +21,7 @@ function TopNav() {
     <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-10">
       <nav className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="font-semibold tracking-tight text-lg">
-          <span className="text-accent">Med</span>Check
+          <span className="text-accent">Saksh</span>ya
         </Link>
         <div className="flex items-center gap-1 text-sm">
           <Link

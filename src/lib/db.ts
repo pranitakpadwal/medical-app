@@ -117,7 +117,7 @@ export async function getDb(): Promise<Sql | null> {
     await globalThis.__medcheckReady;
     return sql;
   } catch (err) {
-    console.error("MedCheck: database unavailable, using seed library.", err);
+    console.error("Sakshya: database unavailable, using seed library.", err);
     // Allow a later request to retry bootstrap.
     globalThis.__medcheckReady = undefined;
     return null;

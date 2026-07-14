@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MedCheck — fact-checked answers for med students",
-    short_name: "MedCheck",
+    name: "Sakshya — fact-checked answers for med students",
+    short_name: "Sakshya",
     description:
       "Grounded, cited answers to clinical and lab questions for medical students — or an honest 'not covered yet'.",
     start_url: "/",
