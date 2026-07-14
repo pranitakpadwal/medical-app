@@ -1,5 +1,7 @@
 import postgres from "postgres";
+import { SAMPLE_QUESTIONS } from "@/data/sampleQuestions";
 import { CHUNKS, SOURCES } from "@/data/sources";
+import { normalize } from "@/lib/text";
 import type { EvidenceLevel, RetrievedPassage } from "@/lib/types";
 
 /**
@@ -92,6 +94,19 @@ async function bootstrap(sql: Sql): Promise<void> {
   }
   for (const c of CHUNKS) {
     await insertChunk(sql, c.id, c.sourceId, c.topic, c.keywords, c.text);
+  }
+
+  // Seed Explore with real, cited Q&A built from the library above, so it
+  // isn't empty before real students start asking. ON CONFLICT DO NOTHING on
+  // question_key means this never overwrites a real ask — including the
+  // first time a student's phrasing exactly matches a seeded question, which
+  // upserts onto this same row (see answer.ts) and gets a real Claude
+  // synthesis, indistinguishable from organic content from then on.
+  for (const q of SAMPLE_QUESTIONS) {
+    await sql`
+      INSERT INTO questions (question, question_key, status, top_score, passage_ids, ask_count, last_asked_at)
+      VALUES (${q.question}, ${normalize(q.question)}, 'answered', 1, ${[q.chunkId]}, 1, now())
+      ON CONFLICT (question_key) DO NOTHING`;
   }
 }
 

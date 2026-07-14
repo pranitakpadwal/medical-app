@@ -1,6 +1,7 @@
 import { getCachedSynthesis, getDb } from "@/lib/db";
-import { normalize, retrieve } from "@/lib/retrieval";
+import { retrieve } from "@/lib/retrieval";
 import { synthesize } from "@/lib/synthesize";
+import { normalize } from "@/lib/text";
 import type { Answer, Source } from "@/lib/types";
 
 /**

@@ -46,6 +46,12 @@ clinicians: every answer carries its citations.
   abstained) so the most-asked uncovered topics become the content roadmap.
 - `src/data/sources.ts` — the hand-curated seed library (`Source` + `Chunk`
   records) used as fallback and to seed fresh databases.
+- `src/data/sampleQuestions.ts` — one natural student question per seed
+  passage (27), inserted into `questions` on bootstrap so Explore has real,
+  cited content from first deploy instead of being empty until real traffic.
+  If a real student later asks the identical question, it upserts onto the
+  same row and gets a genuine Claude synthesis — indistinguishable from
+  organic content from then on.
 - `src/app/api/ask/route.ts` — POST `{ question }` → grounded `Answer` JSON.
 - `src/app/api/feedback/route.ts` — POST thumbs up/down on an answer.
 - `src/app/admin/page.tsx` + `src/app/api/admin/*` — password-protected

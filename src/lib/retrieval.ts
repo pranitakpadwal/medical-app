@@ -1,5 +1,6 @@
 import { CHUNKS, sourceFor } from "@/data/sources";
 import { getDb } from "@/lib/db";
+import { normalize } from "@/lib/text";
 import type { EvidenceLevel, RetrievedPassage } from "@/lib/types";
 
 /**
@@ -63,18 +64,6 @@ function stem(t: string): string {
   return t;
 }
 
-/**
- * Lowercase, strip punctuation, collapse whitespace — shared by tokens and
- * phrases here, and reused in db.ts as the question dedupe key for
- * permalinks (two askers phrasing a question identically land on one row).
- */
-export function normalize(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9%.\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 interface ScorableChunk {
   topic: string;
