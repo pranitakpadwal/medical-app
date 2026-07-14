@@ -12,7 +12,7 @@ export default function LearnPage() {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Learn mode</h1>
+        <h1 className="font-serif text-3xl font-bold tracking-tight">Learn mode</h1>
         <p className="text-sm text-muted">
           No specific question in mind? Work through a short case. Read the
           scenario, think about the prompt, then reveal a teaching point backed

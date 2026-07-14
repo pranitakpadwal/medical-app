@@ -3,28 +3,31 @@ import type { EvidenceLevel } from "@/lib/types";
 const LABELS: Record<EvidenceLevel, { text: string; className: string }> = {
   guideline: {
     text: "Guideline",
-    className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    className: "border-emerald-600 text-emerald-800 dark:border-emerald-400 dark:text-emerald-300",
   },
   review: {
     text: "Systematic review",
-    className: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+    className: "border-sky-600 text-sky-800 dark:border-sky-400 dark:text-sky-300",
   },
   study: {
     text: "Single study",
-    className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    className: "border-accent text-accent",
   },
   textbook: {
     text: "Textbook / consensus",
-    className: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+    className: "border-muted text-muted",
   },
 };
 
-/** A small colour-coded label showing how strong a cited source is. */
+/**
+ * A small evidence-strength label, styled as an editorial small-caps tag
+ * (colored left rule, no fill) rather than a rounded pastel pill.
+ */
 export function EvidenceBadge({ level }: { level: EvidenceLevel }) {
   const { text, className } = LABELS[level];
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${className}`}
+      className={`inline-flex items-center border-l-2 pl-1.5 text-[10px] font-semibold uppercase tracking-wide ${className}`}
     >
       {text}
     </span>

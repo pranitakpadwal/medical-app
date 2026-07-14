@@ -58,7 +58,7 @@ export default async function QuestionPage({ params }: Props) {
       <Link href="/explore" className="text-sm text-accent hover:underline">
         ← Back to Explore
       </Link>
-      <h1 className="text-xl font-semibold tracking-tight">{row.question}</h1>
+      <h1 className="font-serif text-2xl font-bold tracking-tight">{row.question}</h1>
       <AnswerCard answer={answer} />
     </div>
   );

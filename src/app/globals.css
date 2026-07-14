@@ -1,32 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8fa;
-  --foreground: #14171f;
+  --background: #faf6ef;
+  --foreground: #201a13;
   --card: #ffffff;
-  --border: #e4e7ec;
-  --muted: #667085;
-  --accent: #0d7d6b;
+  --card-raised: #fffdfa;
+  --border: #e8dfd0;
+  --muted: #746a5c;
+  --accent: #92400e;
+  --accent-soft: #fdf1e0;
+  --accent-ink: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-raised: var(--card-raised);
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Georgia Pro", Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0e14;
-    --foreground: #e6e8ec;
-    --card: #141922;
-    --border: #232a36;
-    --muted: #98a2b3;
-    --accent: #2dd4bf;
+    --background: #171310;
+    --foreground: #f3ead9;
+    --card: #211a14;
+    --card-raised: #251d17;
+    --border: #3c2f22;
+    --muted: #b0a290;
+    --accent: #e08a2c;
+    --accent-soft: #2c2116;
+    --accent-ink: #1c1108;
   }
 }
 
@@ -35,4 +45,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* A faint, warm dot-grid — reads as editorial/print, not generic SaaS gradient. */
+.bg-grain {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 22px 22px;
 }

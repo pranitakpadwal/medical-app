@@ -60,13 +60,15 @@ export function AskChat() {
     <div className="space-y-6">
       {turns.length === 0 && (
         <div className="space-y-3">
-          <p className="text-sm text-muted">Try one of these:</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+            Try one of these
+          </p>
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => ask(s)}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-accent transition-colors"
+                className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-accent hover:text-accent transition-colors"
               >
                 {s}
               </button>
@@ -78,13 +80,9 @@ export function AskChat() {
       <div className="space-y-5">
         {turns.map((turn, i) => (
           <div key={i} className="space-y-2">
-            <div className="flex justify-end">
-              <p className="rounded-2xl rounded-br-sm bg-accent px-4 py-2 text-sm text-white max-w-[85%]">
-                {turn.question}
-              </p>
-            </div>
+            <p className="font-serif text-lg font-semibold">{turn.question}</p>
             {turn.error ? (
-              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm">
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
                 {turn.error}
               </div>
             ) : turn.answer ? (
@@ -100,7 +98,7 @@ export function AskChat() {
                 )}
               </div>
             ) : (
-              <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted animate-pulse">
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted animate-pulse">
                 Searching vetted sources…
               </div>
             )}
@@ -113,19 +111,19 @@ export function AskChat() {
           e.preventDefault();
           ask(input);
         }}
-        className="sticky bottom-4 flex gap-2"
+        className="flex gap-2"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask a clinical or lab question…"
-          className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-[15px] outline-none focus:border-accent"
+          className="flex-1 rounded-md border border-border bg-card px-4 py-3 text-[15px] outline-none focus:border-accent"
           aria-label="Your question"
         />
         <button
           type="submit"
           disabled={busy || input.trim().length === 0}
-          className="rounded-xl bg-accent px-5 py-3 text-sm font-medium text-white disabled:opacity-40 transition-opacity"
+          className="rounded-md bg-accent px-5 py-3 text-sm font-semibold text-accent-ink disabled:opacity-40 transition-opacity"
         >
           Ask
         </button>

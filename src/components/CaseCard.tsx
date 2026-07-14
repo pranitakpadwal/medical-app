@@ -12,21 +12,21 @@ export function CaseCard({ study }: { study: CaseStudy }) {
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-        <span className="font-medium text-foreground">{study.specialty}</span>
-        <span>·</span>
+    <div className="rounded-lg border border-border bg-card p-5 sm:p-6 space-y-3">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        <span className="text-accent">{study.specialty}</span>
+        <span aria-hidden>·</span>
         <span>{study.minutes} min</span>
       </div>
 
-      <h3 className="text-lg font-semibold tracking-tight">{study.title}</h3>
+      <h3 className="font-serif text-lg font-bold tracking-tight">{study.title}</h3>
       <p className="text-[15px] leading-relaxed">{study.stem}</p>
       <p className="text-[15px] font-medium">{study.prompt}</p>
 
       {revealed ? (
-        <div className="space-y-3 rounded-lg border border-border bg-background/50 p-3">
+        <div className="space-y-3 border-l-2 border-accent/50 pl-4">
           <p className="text-[15px] leading-relaxed">{study.teaching}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {sources.map((s) => (
               <a
                 key={s.id}
@@ -44,7 +44,7 @@ export function CaseCard({ study }: { study: CaseStudy }) {
       ) : (
         <button
           onClick={() => setRevealed(true)}
-          className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:border-accent transition-colors"
+          className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:border-accent hover:text-accent transition-colors"
         >
           Reveal teaching point
         </button>

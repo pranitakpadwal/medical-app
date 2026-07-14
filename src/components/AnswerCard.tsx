@@ -28,31 +28,37 @@ function FeedbackRow({ questionId }: { questionId: number }) {
       Was this helpful?
       <button
         onClick={() => send(true)}
-        className="rounded border border-border px-2 py-0.5 hover:border-accent transition-colors"
+        className="rounded border border-border px-2 py-0.5 hover:border-accent hover:text-accent transition-colors"
         aria-label="Helpful"
       >
-        👍
+        Yes
       </button>
       <button
         onClick={() => send(false)}
-        className="rounded border border-border px-2 py-0.5 hover:border-accent transition-colors"
+        className="rounded border border-border px-2 py-0.5 hover:border-accent hover:text-accent transition-colors"
         aria-label="Not helpful"
       >
-        👎
+        No
       </button>
     </span>
   );
 }
 
-/** Renders one grounded answer: either cited passages or an honest abstention. */
+/**
+ * Renders one grounded answer: either cited passages or an honest abstention.
+ * Synthesized prose (sans, upright) is typographically distinct from the
+ * verbatim source excerpts (serif, italic, quoted) — a visual reinforcement
+ * of the trust promise: this is what was written for you vs. what the
+ * source actually says.
+ */
 export function AnswerCard({ answer }: { answer: Answer }) {
   const abstained = answer.status === "abstained";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4">
+    <div className="rounded-lg border border-border bg-card p-5 sm:p-6 space-y-5">
       <div className="flex items-start gap-2">
         <span
-          className={`mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full ${
+          className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
             abstained ? "bg-amber-500" : "bg-accent"
           }`}
           aria-hidden
@@ -63,51 +69,48 @@ export function AnswerCard({ answer }: { answer: Answer }) {
       </div>
 
       {answer.synthesis && (
-        <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{answer.synthesis}</p>
+        <p className="text-[15.5px] leading-relaxed whitespace-pre-wrap">{answer.synthesis}</p>
       )}
 
       {answer.synthesis && answer.passages.length > 0 && (
-        <p className="text-xs font-medium text-muted">
-          Sources — bracketed numbers above match these:
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Sources</p>
       )}
 
-      {answer.passages.map(({ chunk, source, score }, i) => (
-        <div
-          key={chunk.id}
-          className="rounded-lg border border-border bg-background/50 p-3 space-y-2"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            {answer.synthesis && (
-              <span className="text-xs font-semibold text-accent tabular-nums">[{i + 1}]</span>
-            )}
-            <span className="text-xs font-medium text-foreground">{chunk.topic}</span>
-            <EvidenceBadge level={source.evidence} />
-            <span className="ml-auto text-[11px] text-muted tabular-nums">
-              match {(Math.min(score, 1) * 100).toFixed(0)}%
-            </span>
+      <div className="space-y-4">
+        {answer.passages.map(({ chunk, source, score }, i) => (
+          <div key={chunk.id} className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              {answer.synthesis && (
+                <span className="text-xs font-bold text-accent tabular-nums">[{i + 1}]</span>
+              )}
+              <span className="text-xs font-semibold text-foreground">{chunk.topic}</span>
+              <EvidenceBadge level={source.evidence} />
+              <span className="ml-auto text-[11px] text-muted tabular-nums">
+                match {(Math.min(score, 1) * 100).toFixed(0)}%
+              </span>
+            </div>
+
+            <blockquote className="border-l-2 border-accent/50 pl-4 font-serif text-[15.5px] italic leading-relaxed text-foreground/90">
+              {chunk.text}
+            </blockquote>
+
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+            >
+              {source.title} — {source.publisher}, {source.year} ↗
+            </a>
           </div>
-
-          <p className="text-[15px] leading-relaxed">{chunk.text}</p>
-
-          <a
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-          >
-            {source.title} — {source.publisher}, {source.year} ↗
-          </a>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {answer.sources.length > 1 && (
-        <div className="text-xs text-muted">
-          {answer.sources.length} sources cited.
-        </div>
+        <div className="text-xs text-muted">{answer.sources.length} sources cited.</div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
         <p className="text-[11px] text-muted">{answer.disclaimer}</p>
         {typeof answer.questionId === "number" && (
           <FeedbackRow questionId={answer.questionId} />

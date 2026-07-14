@@ -83,9 +83,17 @@ clinicians: every answer carries its citations.
 - `src/app/explore/page.tsx` — browse every question asked so far, most-asked
   first, linking to its permalink. Turns the question log into something
   students can actually discover, not just an admin-only activity feed.
-- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode**: a hero
-  section (tagline, live stats, "how it works"), the chat UI with citations,
-  evidence badges and feedback buttons, and a CTA into Explore.
+- `src/app/page.tsx` + `src/components/AskChat.tsx` — **Ask mode**: a
+  two-column hero (pitch + stats on the left, a real worked example rendered
+  in a mock browser frame on the right, using actual library data — not a
+  mockup), the chat UI with citations, evidence badges and feedback buttons,
+  a 3-step "how it works," and a CTA into Explore.
+- **Visual identity** (`globals.css`): a warm ivory/deep-amber palette and
+  serif display type, deliberately away from the generic teal-and-rounded-
+  pills "AI app" look — plus an editorial treatment for citations
+  (blockquoted, serif, italic) that's typographically distinct from
+  synthesized prose, reinforcing the grounding promise visually, not just in
+  copy.
 - `src/app/learn/page.tsx` + `src/data/cases.ts` — **Learn mode**, short
   clinical case studies with a guided reveal for "tired mode" revision.
 - `src/app/manifest.ts` — PWA manifest so the app installs to a home screen.
